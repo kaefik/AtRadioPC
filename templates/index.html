@@ -1,87 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Radio Player</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            text-align: center;
-        }
-        #header {
-            font-size: 24px;
-            font-weight: bold;
-            margin: 20px 0;
-        }
-        #player-container {
-            margin: 10px auto;
-            padding: 10px;
-            border: 2px solid black;
-            width: 80%;
-            max-width: 600px;
-            text-align: center;
-        }
-        #stations-list {
-            margin: 20px auto;
-            padding: 10px;
-            border: 2px solid black;
-            width: 80%;
-            max-width: 600px;
-            text-align: left;
-            overflow-y: auto;
-            height: 300px;
-        }
-        .station-item {
-            margin: 10px 0;
-            padding: 5px;
-            cursor: pointer;
-            border: 1px solid transparent;
-        }
-        .station-item:hover {
-            background-color: #f0f0f0;
-        }
-        .station-item.active {
-            background-color: #d4edda;
-            border-color: #28a745;
-        }
-        button {
-            margin-top: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-    </style>
+    <title>Радио</title>
 </head>
 <body>
-    <div id="header">Название проигрываемой станции</div>
-    <div id="player-container">
-        <p>плеер проигрывание станции</p>
-        <audio id="audio-player" controls></audio>
-    </div>
-    <div id="stations-list">
-        {% for station in stations %}
-        <div class="station-item" onclick="playStation('{{ station.url }}', '{{ station.name }}', this)">
-            {{ station.name }}
-        </div>
-        {% endfor %}
-    </div>
-    <script>
-        function playStation(url, name, element) {
-            const audioPlayer = document.getElementById("audio-player");
-            audioPlayer.src = url;
-            audioPlayer.play();
-            document.getElementById("header").textContent = name;
+    <h1>{{ last_station.name if last_station else "Выберите станцию" }}</h1>
 
-            // Убираем выделение со всех станций
-            const stationItems = document.querySelectorAll('.station-item');
-            stationItems.forEach(item => item.classList.remove('active'));
+    <!-- Аудио проигрыватель -->
+    {% if last_station %}
+    <audio controls autoplay>
+        <source src="{{ last_station.url }}" type="audio/mpeg">
+        Ваш браузер не поддерживает воспроизведение аудио.
+    </audio>
+    {% else %}
+    <audio controls>
+        Ваш браузер не поддерживает воспроизведение аудио.
+    </audio>
+    {% endif %}
 
-            // Добавляем выделение текущей станции
-            element.classList.add('active');
-        }
-    </script>
+    <form method="POST">
+        <ul>
+            {% for station in stations %}
+            <li>
+                <button type="submit" name="station_name" value="{{ station.name }}"
+                        style="background-color: {% if last_station and last_station.name == station.name %}green{% else %}white{% endif %}">
+                    {{ station.name }}
+                </button>
+                <input type="hidden" name="station_url_{{ station.name }}" value="{{ station.url }}">
+            </li>
+            {% endfor %}
+        </ul>
+    </form>
 </body>
 </html>

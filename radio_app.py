@@ -1,4 +1,7 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
+
+import json
+import os
 
 app = Flask(__name__)
 
@@ -30,19 +33,41 @@ radio_stations = [
     {"name": "Жулдыз FM", "url": "http://91.201.214.229:8000/zhulduz"}
 ]
 
+# Файл для сохранения последней станции
+LAST_STATION_FILE = "last_station.json"
 
+def save_last_station(station):
+    """Сохраняем последнюю станцию в файл"""
+    with open(LAST_STATION_FILE, "w") as file:
+        json.dump(station, file)
 
-@app.route("/")
+def get_last_station():
+    """Получаем последнюю станцию из файла"""
+    if os.path.exists(LAST_STATION_FILE):
+        with open(LAST_STATION_FILE, "r") as file:
+            try:
+                return json.load(file)
+            except json.JSONDecodeError:
+                return None  # Если файл поврежден
+    return None
+
+@app.route("/", methods=["GET", "POST"])
 def index():
-    return render_template("index.html", stations=radio_stations)
+    last_station = get_last_station()
+
+    if request.method == "POST":
+        station_name = request.form.get("station_name")
+        station_url = request.form.get(f"station_url_{station_name}")
+        last_station = {"name": station_name, "url": station_url}
+
+        save_last_station(last_station)
+
+        # Перезагружаем страницу
+        return redirect(url_for("index"))
+
+    return render_template("index.html", stations=radio_stations, last_station=last_station)
 
 
-@app.route("/play", methods=["POST"])
-def play():
-    """Страница для воспроизведения выбранной радиостанции."""
-    station_url = request.form.get("station_url")
-    station_name = request.form.get("station_name")
-    return render_template("play.html", station_name=station_name, station_url=station_url)
 
 if __name__ == "__main__":
     app.run(debug=True)
