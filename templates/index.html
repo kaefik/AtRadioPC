@@ -38,9 +38,14 @@
             margin: 10px 0;
             padding: 5px;
             cursor: pointer;
+            border: 1px solid transparent;
         }
         .station-item:hover {
             background-color: #f0f0f0;
+        }
+        .station-item.active {
+            background-color: #d4edda;
+            border-color: #28a745;
         }
         button {
             margin-top: 10px;
@@ -53,21 +58,29 @@
 <body>
     <div id="header">Название проигрываемой станции</div>
     <div id="player-container">
+        <p>плеер проигрывание станции</p>
         <audio id="audio-player" controls></audio>
     </div>
     <div id="stations-list">
         {% for station in stations %}
-        <div class="station-item" onclick="playStation('{{ station.url }}', '{{ station.name }}')">
+        <div class="station-item" onclick="playStation('{{ station.url }}', '{{ station.name }}', this)">
             {{ station.name }}
         </div>
         {% endfor %}
     </div>
     <script>
-        function playStation(url, name) {
+        function playStation(url, name, element) {
             const audioPlayer = document.getElementById("audio-player");
             audioPlayer.src = url;
             audioPlayer.play();
             document.getElementById("header").textContent = name;
+
+            // Убираем выделение со всех станций
+            const stationItems = document.querySelectorAll('.station-item');
+            stationItems.forEach(item => item.classList.remove('active'));
+
+            // Добавляем выделение текущей станции
+            element.classList.add('active');
         }
     </script>
 </body>
