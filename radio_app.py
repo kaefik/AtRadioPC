@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for
-
 import json
 import os
 
@@ -66,8 +65,6 @@ def index():
         return redirect(url_for("index"))
 
     return render_template("index.html", stations=radio_stations, last_station=last_station)
-
-
 
 if __name__ == "__main__":
     app.run(debug=True)
