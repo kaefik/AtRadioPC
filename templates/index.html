@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radio Player</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        #header {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        #player-container {
+            margin: 10px auto;
+            padding: 10px;
+            border: 2px solid black;
+            width: 80%;
+            max-width: 600px;
+            text-align: center;
+        }
+        #stations-list {
+            margin: 20px auto;
+            padding: 10px;
+            border: 2px solid black;
+            width: 80%;
+            max-width: 600px;
+            text-align: left;
+            overflow-y: auto;
+            height: 300px;
+        }
+        .station-item {
+            margin: 10px 0;
+            padding: 5px;
+            cursor: pointer;
+        }
+        .station-item:hover {
+            background-color: #f0f0f0;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">Название проигрываемой станции</div>
+    <div id="player-container">
+        <audio id="audio-player" controls></audio>
+    </div>
+    <div id="stations-list">
+        {% for station in stations %}
+        <div class="station-item" onclick="playStation('{{ station.url }}', '{{ station.name }}')">
+            {{ station.name }}
+        </div>
+        {% endfor %}
+    </div>
+    <script>
+        function playStation(url, name) {
+            const audioPlayer = document.getElementById("audio-player");
+            audioPlayer.src = url;
+            audioPlayer.play();
+            document.getElementById("header").textContent = name;
+        }
+    </script>
+</body>
+</html>
