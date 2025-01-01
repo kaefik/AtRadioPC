@@ -29,6 +29,11 @@ def get_last_station():
                 return None
     return None
 
+def save_stations_to_file(stations, filename):
+    """Сохраняем станции в выбранный файл"""
+    with open(filename, "w") as file:
+        json.dump(stations, file, ensure_ascii=False, indent=2)
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     radio_stations = load_radio_stations()
@@ -58,6 +63,24 @@ def index():
         return redirect(url_for("index"))
 
     return render_template("index.html", stations=radio_stations, last_station=last_station)
+
+
+@app.route("/save_stations", methods=["POST"])
+def save_stations():
+    stations = load_radio_stations()
+    directory = request.form.get('directory', '')
+
+    print(f"{directory=}")
+
+    # Ensure the directory exists
+    os.makedirs(directory, exist_ok=True)
+
+    # Save the stations file in the selected directory
+    filename = os.path.join(directory, 'stations.json')
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(stations, f, ensure_ascii=False, indent=2)
+
+    return '', 200
 
 if __name__ == "__main__":
     app.run(debug=True)
