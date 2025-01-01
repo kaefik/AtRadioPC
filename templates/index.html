@@ -76,7 +76,7 @@
     <div class="container">
         <div class="header">{{ last_station.name if last_station else '' }}</div>
         <div class="player">
-            
+            <input type="text" class="station-input" placeholder="плеер проигрывание станции" readonly value="{{ last_station.name if last_station else '' }}">
 
             <!-- Аудио проигрыватель -->
             {% if last_station %}
