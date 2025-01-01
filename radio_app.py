@@ -9,22 +9,18 @@ RADIO_STATIONS_FILE = "cfg/radio_stations.json"
 LAST_STATION_FILE = "cfg/last_station.json"
 
 def load_radio_stations():
-    """Загружаем радиостанции из файла конфигурации"""
     with open(RADIO_STATIONS_FILE, "r") as file:
         return json.load(file)
 
 def save_radio_stations(stations):
-    """Сохраняем список радиостанций в файл"""
     with open(RADIO_STATIONS_FILE, "w") as file:
         json.dump(stations, file, ensure_ascii=False, indent=2)
 
 def save_last_station(station):
-    """Сохраняем последнюю станцию в файл"""
     with open(LAST_STATION_FILE, "w") as file:
         json.dump(station, file)
 
 def get_last_station():
-    """Получаем последнюю станцию из файла"""
     if os.path.exists(LAST_STATION_FILE):
         with open(LAST_STATION_FILE, "r") as file:
             try:
@@ -40,14 +36,20 @@ def index():
 
     if request.method == "POST":
         if "new_station" in request.form:
-            # Добавление новой станции
             name = request.form.get("station_name")
             url = request.form.get("station_url")
             if name and url:
                 radio_stations.append({"name": name, "url": url})
                 save_radio_stations(radio_stations)
+        elif "delete_station" in request.form:
+            station_name = request.form.get("delete_station")
+            radio_stations = [s for s in radio_stations if s["name"] != station_name]
+            save_radio_stations(radio_stations)
+            if last_station and last_station["name"] == station_name:
+                last_station = None
+                if os.path.exists(LAST_STATION_FILE):
+                    os.remove(LAST_STATION_FILE)
         else:
-            # Выбор станции для проигрывания
             station_name = request.form.get("station_name")
             station_url = request.form.get(f"station_url_{station_name}")
             last_station = {"name": station_name, "url": station_url}
