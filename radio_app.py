@@ -1,12 +1,11 @@
+# radio_app.py
 from flask import Flask, render_template, request, redirect, url_for
 import json
 import os
 
 app = Flask(__name__)
 
-# Путь к файлу конфигурации радиостанций
 RADIO_STATIONS_FILE = "cfg/radio_stations.json"
-# Файл для сохранения последней станции
 LAST_STATION_FILE = "cfg/last_station.json"
 
 def load_radio_stations():
@@ -14,7 +13,10 @@ def load_radio_stations():
     with open(RADIO_STATIONS_FILE, "r") as file:
         return json.load(file)
 
-
+def save_radio_stations(stations):
+    """Сохраняем список радиостанций в файл"""
+    with open(RADIO_STATIONS_FILE, "w") as file:
+        json.dump(stations, file, ensure_ascii=False, indent=2)
 
 def save_last_station(station):
     """Сохраняем последнюю станцию в файл"""
@@ -28,7 +30,7 @@ def get_last_station():
             try:
                 return json.load(file)
             except json.JSONDecodeError:
-                return None  # Если файл поврежден
+                return None
     return None
 
 @app.route("/", methods=["GET", "POST"])
@@ -37,13 +39,20 @@ def index():
     last_station = get_last_station()
 
     if request.method == "POST":
-        station_name = request.form.get("station_name")
-        station_url = request.form.get(f"station_url_{station_name}")
-        last_station = {"name": station_name, "url": station_url}
+        if "new_station" in request.form:
+            # Добавление новой станции
+            name = request.form.get("station_name")
+            url = request.form.get("station_url")
+            if name and url:
+                radio_stations.append({"name": name, "url": url})
+                save_radio_stations(radio_stations)
+        else:
+            # Выбор станции для проигрывания
+            station_name = request.form.get("station_name")
+            station_url = request.form.get(f"station_url_{station_name}")
+            last_station = {"name": station_name, "url": station_url}
+            save_last_station(last_station)
 
-        save_last_station(last_station)
-
-        # Перезагружаем страницу
         return redirect(url_for("index"))
 
     return render_template("index.html", stations=radio_stations, last_station=last_station)
