@@ -6,7 +6,18 @@ app = Flask(__name__)
 
 RADIO_STATIONS_FILE = "cfg/radio_stations.json"
 LAST_STATION_FILE = "cfg/last_station.json"
+FAVORITES_FILE = "cfg/favorites.json"
 
+
+def load_favorites():
+    if os.path.exists(FAVORITES_FILE):
+        with open(FAVORITES_FILE, "r") as file:
+            return json.load(file)
+    return {"favorite1": None, "favorite2": None, "favorite3": None}
+
+def save_favorites(favorites):
+    with open(FAVORITES_FILE, "w") as file:
+        json.dump(favorites, file, ensure_ascii=False, indent=2)
 
 def load_radio_stations():
     with open(RADIO_STATIONS_FILE, "r") as file:
@@ -120,6 +131,25 @@ def load_stations_from_csv():
 
     except Exception as e:
         return str(e), 500
+
+@app.route("/favorites/<favorite_id>", methods=["POST"])
+def manage_favorite(favorite_id):
+    favorites = load_favorites()
+    if "save" in request.form:
+        last_station = get_last_station()
+        if last_station:
+            favorites[f"favorite{favorite_id}"] = last_station
+            save_favorites(favorites)
+            return "Станция сохранена как избранная", 200
+        return "Нет текущей станции для сохранения", 400
+    elif "play" in request.form:
+        favorite = favorites.get(f"favorite{favorite_id}")
+        if favorite:
+            save_last_station(favorite)
+            return "Станция воспроизводится", 200
+        return "На эту кнопку нет сохраненной станции", 400
+    return "Неверный запрос", 400
+
 
 if __name__ == "__main__":
     app.run(debug=True)

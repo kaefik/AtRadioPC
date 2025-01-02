@@ -128,6 +128,28 @@
             cursor: pointer;
             margin: 10px 5px;
         }
+
+        .favorite-btn {
+            padding: 10px;
+            border: 3px solid black;
+            background-color: white;
+            cursor: pointer;
+            font-size: 1em;
+            position: relative;
+        }
+
+        .favorite-btn.active {
+            background-color: #e0e0e0;
+        }
+
+        .station-button.can-favorite:after {
+            content: "★";
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
     </style>
 </head>
 <body>
@@ -144,6 +166,13 @@
                 Ваш браузер не поддерживает воспроизведение аудио.
             </audio>
             {% endif %}
+        </div>
+
+        <div class="header">Избранные станции</div>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <button class="favorite-btn" style="flex: 1;"  data-station="">F1</button>
+            <button class="favorite-btn" style="flex: 1;"  data-station="">F2</button>
+            <button class="favorite-btn" style="flex: 1;"  data-station="">F3</button>
         </div>
 
         <div class="header">Список станций</div>
@@ -264,6 +293,50 @@
 
             input.click();
         }
+
+
+        document.querySelectorAll(".favorite-btn").forEach((button, index) => {
+            const favoriteId = index + 1; // F1, F2, F3 соответствуют 1, 2, 3
+            let pressTimer;
+
+            // Короткое нажатие
+            button.addEventListener("click", async () => {
+                try {
+                    const response = await fetch(`/favorites/${favoriteId}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: "play=true"
+                    });
+                    const message = await response.text();
+                    alert(message);
+                    if (response.ok) location.reload();
+                } catch (error) {
+                    alert("Ошибка: " + error);
+                }
+            });
+
+            // Долгое нажатие
+            button.addEventListener("mousedown", () => {
+                pressTimer = setTimeout(async () => {
+                    try {
+                        const response = await fetch(`/favorites/${favoriteId}`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                            body: "save=true"
+                        });
+                        alert(await response.text());
+                    } catch (error) {
+                        alert("Ошибка: " + error);
+                    }
+                }, 1000); // Удержание 1 секунда
+            });
+
+            button.addEventListener("mouseup", () => clearTimeout(pressTimer));
+            button.addEventListener("mouseleave", () => clearTimeout(pressTimer));
+        });
+
+
+
 
     </script>
 </body>
