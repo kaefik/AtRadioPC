@@ -1,4 +1,3 @@
-# radio_app.py
 from flask import Flask, render_template, request, redirect, url_for
 import json
 import os
@@ -8,17 +7,21 @@ app = Flask(__name__)
 RADIO_STATIONS_FILE = "cfg/radio_stations.json"
 LAST_STATION_FILE = "cfg/last_station.json"
 
+
 def load_radio_stations():
     with open(RADIO_STATIONS_FILE, "r") as file:
         return json.load(file)
+
 
 def save_radio_stations(stations):
     with open(RADIO_STATIONS_FILE, "w") as file:
         json.dump(stations, file, ensure_ascii=False, indent=2)
 
+
 def save_last_station(station):
     with open(LAST_STATION_FILE, "w") as file:
         json.dump(station, file)
+
 
 def get_last_station():
     if os.path.exists(LAST_STATION_FILE):
@@ -29,10 +32,6 @@ def get_last_station():
                 return None
     return None
 
-def save_stations_to_file(stations, filename):
-    """Сохраняем станции в выбранный файл"""
-    with open(filename, "w") as file:
-        json.dump(stations, file, ensure_ascii=False, indent=2)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -67,20 +66,21 @@ def index():
 
 @app.route("/save_stations", methods=["POST"])
 def save_stations():
-    stations = load_radio_stations()
-    directory = request.form.get('directory', '')
+    try:
+        stations = load_radio_stations()
+        selected_dir = request.form.get('directory', '')
 
-    print(f"{directory=}")
+        filename = os.path.join(os.path.expanduser('~'), selected_dir, 'stations.json')
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-    # Ensure the directory exists
-    os.makedirs(directory, exist_ok=True)
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(stations, f, ensure_ascii=False, indent=2)
 
-    # Save the stations file in the selected directory
-    filename = os.path.join(directory, 'stations.json')
-    with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(stations, f, ensure_ascii=False, indent=2)
+        return '', 200
 
-    return '', 200
+    except Exception as e:
+        return str(e), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -171,19 +171,6 @@
         </div>
     </div>
 
-     <!-- Add new save modal -->
-    <div id="saveStationsModal" class="modal">
-        <div class="modal-content">
-            <form method="POST" action="/save_stations">
-                <input type="text" name="filename" placeholder="Имя файла" required value="stations.json">
-                <div class="modal-buttons">
-                    <button type="button" onclick="closeSaveModal()">Отмена</button>
-                    <button type="submit">Сохранить</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <div id="addStationModal" class="modal">
         <div class="modal-content">
             <form method="POST">
@@ -200,17 +187,16 @@
 
     <script>
         async function saveStations() {
-            // Create a file picker
-            const picker = document.createElement('input');
-            picker.type = 'file';
-            picker.webkitdirectory = true;
-            picker.directory = true;
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.setAttribute('webkitdirectory', '');
+            input.setAttribute('directory', '');
 
-            picker.addEventListener('change', async (e) => {
+            input.addEventListener('change', async (e) => {
                 if (e.target.files.length > 0) {
-                    const dirPath = e.target.files[0].webkitRelativePath.split('/')[0];
+                    const selectedPath = e.target.files[0].webkitRelativePath;
                     const formData = new FormData();
-                    formData.append('directory', dirPath);
+                    formData.append('directory', selectedPath.split('/')[0]);
 
                     try {
                         const response = await fetch('/save_stations', {
@@ -219,31 +205,17 @@
                         });
                         if (response.ok) {
                             alert('Станции сохранены успешно');
+                        } else {
+                            const error = await response.text();
+                            alert('Ошибка при сохранении: ' + error);
                         }
                     } catch (error) {
-                        alert('Ошибка при сохранении станций');
+                        alert('Ошибка при сохранении: ' + error);
                     }
                 }
             });
 
-            picker.click();
-        }
-
-
-
-        function closeSaveModal() {
-            document.getElementById('saveStationsModal').style.display = 'none';
-        }
-
-        window.onclick = function(event) {
-            var modal = document.getElementById('addStationModal');
-            var saveModal = document.getElementById('saveStationsModal');
-            if (event.target == modal) {
-                modal.style.display = 'none';
-            }
-            if (event.target == saveModal) {
-                saveModal.style.display = 'none';
-            }
+            input.click();
         }
 
         function openModal() {
