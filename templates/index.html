@@ -168,6 +168,7 @@
         <div style="display: flex; gap: 10px;">
             <button class="add-station-btn" style="flex: 1;" onclick="openModal()">Добавить станцию</button>
             <button class="add-station-btn" style="flex: 1;" onclick="saveStations()">Сохранить станции</button>
+            <button class="add-station-btn" style="flex: 1;" onclick="loadStations()">Загрузить CSV</button>
         </div>
     </div>
 
@@ -232,6 +233,38 @@
                 modal.style.display = 'none';
             }
         }
+
+        async function loadStations() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.csv';
+
+            input.addEventListener('change', async (e) => {
+                if (e.target.files.length > 0) {
+                    const formData = new FormData();
+                    formData.append('file', e.target.files[0]);
+        
+                    try {
+                        const response = await fetch('/load_stations', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        if (response.ok) {
+                            alert('Станции загружены успешно');
+                            location.reload();
+                        } else {
+                            const error = await response.text();
+                            alert('Ошибка при загрузке: ' + error);
+                        }
+                    } catch (error) {
+                        alert('Ошибка при загрузке: ' + error);
+                    }
+                }
+            });
+
+            input.click();
+        }
+
     </script>
 </body>
 </html>

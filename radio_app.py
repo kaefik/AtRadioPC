@@ -84,5 +84,42 @@ def save_stations():
         return str(e), 500
 
 
+@app.route("/load_stations", methods=["POST"])
+def load_stations_from_csv():
+    try:
+        if 'file' not in request.files:
+            return 'Файл не выбран', 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return 'Файл не выбран', 400
+
+        current_stations = load_radio_stations()
+        current_names = {station['name'] for station in current_stations}
+
+        content = file.read().decode('utf-8')
+        lines = content.strip().split('\n')
+
+        if len(lines) < 2:
+            return 'Файл пуст или неверного формата', 400
+
+        if not lines[0].strip() == 'Name;URL':
+            return 'Неверный формат заголовка CSV', 400
+
+        new_stations = []
+        for line in lines[1:]:
+            name, url = line.strip().split(';')
+            if name not in current_names:
+                new_stations.append({"name": name, "url": url})
+
+        if new_stations:
+            current_stations.extend(new_stations)
+            save_radio_stations(current_stations)
+
+        return '', 200
+
+    except Exception as e:
+        return str(e), 500
+
 if __name__ == "__main__":
     app.run(debug=True)
