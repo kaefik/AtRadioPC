@@ -70,11 +70,13 @@ def save_stations():
         stations = load_radio_stations()
         selected_dir = request.form.get('directory', '')
 
-        filename = os.path.join(os.path.expanduser('~'), selected_dir, 'stations.json')
+        filename = os.path.join(os.path.expanduser('~'), selected_dir, 'stations.csv')
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
         with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(stations, f, ensure_ascii=False, indent=2)
+            f.write('Name;URL\n')
+            for station in stations:
+                f.write(f"{station['name']};{station['url']}\n")
 
         return '', 200
 
