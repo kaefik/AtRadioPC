@@ -57,7 +57,6 @@ function updateStationsList(stations) {
     });
 }
 
-
 // Воспроизведение станции
 async function playStation(station) {
     try {
@@ -103,7 +102,10 @@ async function deleteStation(name) {
         await fetch(`${API_URL}/stations/${name}`, {
             method: 'DELETE'
         });
-        loadInitialData();
+        // Загружаем обновленный список станций
+        const response = await fetch(`${API_URL}/stations`);
+        const data = await response.json();
+        updateStationsList(data.stations);
     } catch (error) {
         console.error('Error deleting station:', error);
     }
@@ -137,7 +139,10 @@ document.getElementById('addStationForm').addEventListener('submit', async (e) =
         });
         closeModal();
         e.target.reset();
-        loadInitialData();
+        // Загружаем обновленный список станций
+        const response = await fetch(`${API_URL}/stations`);
+        const data = await response.json();
+        updateStationsList(data.stations);
     } catch (error) {
         console.error('Error adding station:', error);
     }
@@ -160,7 +165,10 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
             });
             const data = await response.json();
             if (response.ok) {
-                loadInitialData();
+                // Загружаем обновленный список станций
+                const stationsResponse = await fetch(`${API_URL}/stations`);
+                const stationsData = await stationsResponse.json();
+                updateStationsList(stationsData.stations);
             } else {
                 alert(data.error || 'Ошибка воспроизведения');
             }
@@ -243,7 +251,10 @@ async function loadStations() {
                 });
                 if (response.ok) {
                     alert('Станции загружены успешно');
-                    loadInitialData();
+                    // Загружаем обновленный список станций
+                    const stationsResponse = await fetch(`${API_URL}/stations`);
+                    const stationsData = await stationsResponse.json();
+                    updateStationsList(stationsData.stations);
                 } else {
                     const data = await response.json();
                     alert(data.error || 'Ошибка при загрузке');

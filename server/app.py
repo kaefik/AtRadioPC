@@ -79,7 +79,7 @@ def add_station():
 @app.route("/api/stations/<name>", methods=["DELETE"])
 def delete_station(name):
     stations = load_radio_stations()
-    stations = [s for s in stations if s["name"] != name]  # Исправлено на stations
+    stations = [s for s in stations if s["name"] != name]
     save_radio_stations(stations)
 
     last_station = get_last_station()
