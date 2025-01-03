@@ -150,6 +150,25 @@ def manage_favorite(favorite_id):
         return "На эту кнопку нет сохраненной станции", 400
     return "Неверный запрос", 400
 
+@app.route("/update_station", methods=["POST"])
+def update_station():
+    station_name = request.form.get("station_name")
+    station_url = request.form.get("station_url")
+
+    # Сохраняем текущую станцию
+    last_station = {"name": station_name, "url": station_url}
+    save_last_station(last_station)
+
+    # Загружаем список станций
+    radio_stations = load_radio_stations()
+
+    # Возвращаем обновленный HTML-фрагмент: список станций и текущую станцию
+    return {
+        "station_list_html": render_template("station_list.html", stations=radio_stations, last_station=last_station),
+        "last_station_name": last_station["name"],
+        "last_station_url": last_station["url"],
+    }
+
 
 if __name__ == "__main__":
     app.run(debug=True)

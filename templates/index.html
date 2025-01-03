@@ -176,24 +176,10 @@
         </div>
 
         <div class="header">Список станций</div>
-        <div class="station-list">
-            <form method="POST">
-                <ul>
-                    {% for station in stations %}
-                    <li>
-                        <button type="submit" name="station_name" value="{{ station.name }}"
-                                class="station-button {% if last_station and last_station.name == station.name %}active{% endif %}">
-                            {{ station.name }}
-                        </button>
-                        <input type="hidden" name="station_url_{{ station.name }}" value="{{ station.url }}">
-                        <button type="submit" name="delete_station" value="{{ station.name }}"
-                                class="delete-btn"
-                                onclick="return confirm('Удалить станцию {{ station.name }}?')">✖</button>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </form>
+        <div class="station-list" id="stationList">
+            {% include "station_list.html" %}
         </div>
+
         <div style="display: flex; gap: 10px;">
             <button class="add-station-btn" style="flex: 1;" onclick="openModal()">Добавить станцию</button>
             <button class="add-station-btn" style="flex: 1;" onclick="saveStations()">Сохранить станции</button>
@@ -334,6 +320,60 @@
             button.addEventListener("mouseup", () => clearTimeout(pressTimer));
             button.addEventListener("mouseleave", () => clearTimeout(pressTimer));
         });
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const stationList = document.getElementById("stationList");
+
+        stationList.addEventListener("click", async (event) => {
+            const button = event.target.closest(".station-button");
+            if (!button) return; // Если клик не по кнопке станции, игнорируем
+
+            event.preventDefault();
+            const stationName = button.value;
+            const stationUrl = document.querySelector(`input[name="station_url_${stationName}"]`).value;
+
+            try {
+                const response = await fetch("/update_station", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({
+                        station_name: stationName,
+                        station_url: stationUrl
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // Обновляем список станций
+                    stationList.innerHTML = data.station_list_html;
+
+                    // Обновляем заголовок с текущей станцией
+                    document.querySelector(".header").innerText = data.last_station_name;
+
+                    // Обновляем аудиоплеер
+                    const audioPlayer = document.querySelector(".player audio");
+                    audioPlayer.src = data.last_station_url;
+                    audioPlayer.play();
+
+                    // Прокручиваем список к выбранной станции
+                    const activeButton = document.querySelector(`.station-button.active`);
+                    if (activeButton) scrollToStation(activeButton);
+                } else {
+                    alert("Ошибка при выборе станции");
+                }
+            } catch (error) {
+                alert("Ошибка: " + error.message);
+            }
+        });
+
+        function scrollToStation(button) {
+            const stationList = document.getElementById("stationList");
+            const buttonPosition = button.offsetTop;
+            const listHeight = stationList.clientHeight;
+            stationList.scrollTop = buttonPosition - listHeight / 2;
+        }
+    });
 
 
 
