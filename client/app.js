@@ -7,9 +7,17 @@ async function loadInitialData() {
         const response = await fetch(`${API_URL}/stations`);
         const data = await response.json();
         console.log('Loaded data:', data); // Для отладки
+
+        // Обновляем currentStation перед обновлением списка станций
+        if (data.last_station) {
+            currentStation = data.last_station;
+        }
+
         updateStationsList(data.stations);
+
         if (data.last_station) {
             playStation(data.last_station);
+            markLastStationActive(data.last_station.name);
         }
     } catch (error) {
         console.error('Error loading initial data:', error);
@@ -56,6 +64,19 @@ function updateStationsList(stations) {
         stationsList.appendChild(li);
     });
 }
+
+// Функция для пометки последней станции как активной
+function markLastStationActive(stationName) {
+    const buttons = document.querySelectorAll('.station-button');
+    buttons.forEach(button => {
+        if (button.textContent === stationName) {
+            button.classList.add('active');
+        }
+    });
+}
+
+
+
 
 // Воспроизведение станции
 async function playStation(station) {
