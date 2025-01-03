@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Радио</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header" id="currentStation"></div>
+        <div class="player">
+            <audio controls id="audioPlayer">
+                Ваш браузер не поддерживает воспроизведение аудио.
+            </audio>
+        </div>
+
+        <div class="header">Избранные станции</div>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <button class="favorite-btn" style="flex: 1;" data-id="1">F1</button>
+            <button class="favorite-btn" style="flex: 1;" data-id="2">F2</button>
+            <button class="favorite-btn" style="flex: 1;" data-id="3">F3</button>
+        </div>
+
+        <div class="header">Список станций</div>
+        <div class="station-list">
+            <ul id="stationsList"></ul>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="add-station-btn" style="flex: 1;" onclick="openModal()">Добавить станцию</button>
+            <button class="add-station-btn" style="flex: 1;" onclick="saveStations()">Сохранить станции</button>
+            <button class="add-station-btn" style="flex: 1;" onclick="loadStations()">Загрузить CSV</button>
+        </div>
+    </div>
+
+    <div id="addStationModal" class="modal">
+        <div class="modal-content">
+            <form id="addStationForm">
+                <input type="text" name="station_name" placeholder="Название станции" required>
+                <input type="url" name="station_url" placeholder="URL станции" required>
+                <div class="modal-buttons">
+                    <button type="button" onclick="closeModal()">Отмена</button>
+                    <button type="submit">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

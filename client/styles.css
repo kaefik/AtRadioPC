@@ -1,0 +1,136 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f9f9f9;
+}
+
+.container {
+    width: 400px;
+    border: 3px solid black;
+    border-radius: 10px;
+    padding: 20px;
+    background-color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+    font-size: 1.5em;
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.player {
+    border: 3px solid black;
+    padding: 10px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.station-list {
+    border: 3px solid black;
+    padding: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.station-list ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.station-list li {
+    margin-bottom: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.station-list button {
+    padding: 10px;
+    border: 1px solid black;
+    background-color: white;
+    cursor: pointer;
+    text-align: left;
+    font-size: 1em;
+}
+
+.station-button {
+    flex-grow: 1;
+}
+
+.station-list button.active {
+    background-color: green;
+    color: white;
+}
+
+.delete-btn {
+    width: 40px;
+    padding: 10px;
+    border: 1px solid black;
+    background-color: white;
+}
+
+.add-station-btn {
+    width: 100%;
+    padding: 10px;
+    border: 3px solid black;
+    background-color: white;
+    cursor: pointer;
+    margin-top: 10px;
+    font-size: 1em;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 20px;
+    border: 3px solid black;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 400px;
+}
+
+.modal input {
+    width: 95%;
+    padding: 8px;
+    margin: 10px 0;
+    border: 1px solid black;
+}
+
+.modal-buttons button {
+    width: 45%;
+    padding: 10px;
+    border: 3px solid black;
+    background-color: white;
+    cursor: pointer;
+    margin: 10px 5px;
+}
+
+.favorite-btn {
+    padding: 10px;
+    border: 3px solid black;
+    background-color: white;
+    cursor: pointer;
+    font-size: 1em;
+    position: relative;
+}
+
+.favorite-btn.active {
+    background-color: #e0e0e0;
+}

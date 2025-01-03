@@ -1,0 +1,11 @@
+{
+  "favorite1": {
+    "name": "Юлдаш (башкирское радио)",
+    "url": "https://radio.mediacdn.ru/uldash.mp3"
+  },
+  "favorite2": {
+    "name": "ТатРадиоЦентр",
+    "url": "https://listen4.myradio24.com/trc"
+  },
+  "favorite3": null
+}
