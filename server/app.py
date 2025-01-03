@@ -28,8 +28,8 @@ def load_radio_stations():
         os.makedirs(os.path.dirname(RADIO_STATIONS_FILE), exist_ok=True)
         # Создаем файл с тестовыми данными
         initial_stations = [
-            {"name": "Тестовая станция 1", "url": "http://example.com/stream1"},
-            {"name": "Тестовая станция 2", "url": "http://example.com/stream2"}
+            {"name": "TatRadioTsentr", "url": "https://listen4.myradio24.com/trc"},
+            {"name": "Yuldash (bashkirskoe radio)", "url": "https://radio.mediacdn.ru/uldash.mp3"}
         ]
         with open(RADIO_STATIONS_FILE, "w") as file:
             json.dump(initial_stations, file, ensure_ascii=False, indent=2)
@@ -79,7 +79,7 @@ def add_station():
 @app.route("/api/stations/<name>", methods=["DELETE"])
 def delete_station(name):
     stations = load_radio_stations()
-    stations = [s for s in radio_stations if s["name"] != name]
+    stations = [s for s in stations if s["name"] != name]  # Исправлено на stations
     save_radio_stations(stations)
 
     last_station = get_last_station()
@@ -88,6 +88,7 @@ def delete_station(name):
             os.remove(LAST_STATION_FILE)
 
     return jsonify({"success": True})
+
 
 
 @app.route("/api/last-station", methods=["POST"])
