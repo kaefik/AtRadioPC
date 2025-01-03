@@ -166,7 +166,7 @@ def load_stations_from_csv():
         for line in lines[1:]:
             name, url = line.strip().split(';')
             if name not in current_names:
-                current_stations.append({"name": name, "url": url})
+                current_stations.append({"name": name.strip(), "url": url})
 
         save_radio_stations(current_stations)
         return jsonify({"success": True})
