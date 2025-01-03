@@ -18,6 +18,7 @@ async function loadInitialData() {
         if (data.last_station) {
             playStation(data.last_station);
             markLastStationActive(data.last_station.name);
+            scrollToActiveStation(data.last_station.name);
         }
     } catch (error) {
         console.error('Error loading initial data:', error);
@@ -52,6 +53,8 @@ function updateStationsList(stations) {
             playButton.classList.add('active');
             // Запускаем воспроизведение
             playStation(station);
+            // Прокручиваем к активной станции
+            scrollToActiveStation(station.name);
         };
 
         const deleteButton = document.createElement('button');
@@ -74,6 +77,17 @@ function markLastStationActive(stationName) {
         }
     });
 }
+
+// Функция для прокрутки к активной станции
+function scrollToActiveStation(stationName) {
+    const buttons = document.querySelectorAll('.station-button');
+    buttons.forEach(button => {
+        if (button.textContent === stationName) {
+            button.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+    });
+}
+
 
 
 
