@@ -200,10 +200,19 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
             });
             const data = await response.json();
             if (response.ok) {
-                // Загружаем обновленный список станций
-                const stationsResponse = await fetch(`${API_URL}/stations`);
-                const stationsData = await stationsResponse.json();
-                updateStationsList(stationsData.stations);
+                // Проверяем, что данные о станции присутствуют в ответе
+                if (data.station) {
+                    // Обновляем текущую станцию
+                    currentStation = data.station;
+                    // Запускаем воспроизведение
+                    playStation(data.station);
+                    // Обновляем список станций
+                    const stationsResponse = await fetch(`${API_URL}/stations`);
+                    const stationsData = await stationsResponse.json();
+                    updateStationsList(stationsData.stations);
+                } else {
+                    console.error('Station data not found in response:', data);
+                }
             } else {
                 alert(data.error || 'Ошибка воспроизведения');
             }
@@ -234,6 +243,8 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
     button.addEventListener('mouseup', () => clearTimeout(pressTimer));
     button.addEventListener('mouseleave', () => clearTimeout(pressTimer));
 });
+
+
 
 // Сохранение станций в CSV
 async function saveStations() {

@@ -119,7 +119,7 @@ def manage_favorite(favorite_id):
         favorite = favorites.get(f"favorite{favorite_id}")
         if favorite:
             save_last_station(favorite)
-            return jsonify({"message": "Станция воспроизводится"})
+            return jsonify({"message": "Станция воспроизводится", "station": favorite})
         return jsonify({"error": "На эту кнопку нет сохраненной станции"}), 400
 
     return jsonify({"error": "Неверный запрос"}), 400
