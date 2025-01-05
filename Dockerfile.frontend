@@ -1,0 +1,21 @@
+FROM nginx:alpine
+
+ENV NODE_ENV=production
+
+# Копирование статических файлов
+COPY client/ /usr/share/nginx/html/
+
+# Копирование и настройка прав для конфигурации nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+RUN chmod 644 /etc/nginx/conf.d/default.conf && \
+    chown nginx:nginx /etc/nginx/conf.d/default.conf
+
+# Создание директории для кэша с правильными правами
+RUN mkdir -p /var/cache/nginx && \
+    chmod 755 /var/cache/nginx && \
+    chown -R nginx:nginx /var/cache/nginx
+
+# Обновление прав на директорию с логами
+RUN mkdir -p /var/log/nginx && \
+    chmod 755 /var/log/nginx && \
+    chown -R nginx:nginx /var/log/nginx
