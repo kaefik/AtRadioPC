@@ -15,35 +15,47 @@ window.closeModal = function()  {
 
 // Сохранение станций в CSV
 window.saveStations = async function() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.setAttribute('webkitdirectory', '');
-    input.setAttribute('directory', '');
+    try {
+        // Fetch current stations from the API
+        const response = await fetch(`${config.API_URL}/stations`);
+        const data = await response.json();
 
-    input.addEventListener('change', async (e) => {
-        if (e.target.files.length > 0) {
-            const selectedPath = e.target.files[0].webkitRelativePath;
-            try {
-                const response = await fetch(`${config.API_URL}/stations/save`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ directory: selectedPath.split('/')[0] })
-                });
-                if (response.ok) {
-                    alert('Станции сохранены успешно');
-                } else {
-                    const data = await response.json();
-                    alert(data.error || 'Ошибка при сохранении');
-                }
-            } catch (error) {
-                console.error('Error saving stations:', error);
-            }
+        if (!response.ok) {
+            throw new Error('Failed to fetch stations');
         }
-    });
 
-    input.click();
+        // Convert stations to CSV format
+        const csvContent = [
+            // CSV header
+            ['Name', 'URL'].join(','),
+            // Station data rows
+            ...data.stations.map(station => [
+                // Escape quotes and commas in the station name
+                `"${station.name.replace(/"/g, '""')}"`,
+                `"${station.url.replace(/"/g, '""')}"`
+            ].join(','))
+        ].join('\n');
+
+        // Create blob with CSV content
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+        // Create download link
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', `radio_stations_${new Date().toISOString().split('T')[0]}.csv`);
+
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+
+        // Cleanup
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+
+    } catch (error) {
+        console.error('Error saving stations:', error);
+        alert('Ошибка при сохранении станций');
+    }
 }
 
 // Загрузка станций из CSV
