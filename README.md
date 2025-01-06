@@ -22,8 +22,7 @@ pyenv local atradio_pc
 Для остановки контейнеров 
 
 ```
-docker-compose down
-docker system prune -a 
+docker-compose down && docker system prune -a 
 ```
 
 Собрать новый контейнер:
