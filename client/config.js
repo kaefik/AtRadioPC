@@ -7,6 +7,4 @@ const config = {
     }
 };
 
-// In browser environment, we'll default to production since we're serving via nginx
-const ENV = 'production';
-export default config[ENV];
+export default config[window.ENV];
