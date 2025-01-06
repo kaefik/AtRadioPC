@@ -1,10 +1,91 @@
-const API_URL = 'http://127.0.0.1:5000/api';
+import config from './config.js';
+
 let currentStation = null;
+
+// Move these functions to the global scope
+
+// Управление модальным окном
+window.openModal = function() {
+    document.getElementById('addStationModal').style.display = 'block';
+}
+
+window.closeModal = function()  {
+    document.getElementById('addStationModal').style.display = 'none';
+}
+
+// Сохранение станций в CSV
+window.saveStations = async function() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.setAttribute('webkitdirectory', '');
+    input.setAttribute('directory', '');
+
+    input.addEventListener('change', async (e) => {
+        if (e.target.files.length > 0) {
+            const selectedPath = e.target.files[0].webkitRelativePath;
+            try {
+                const response = await fetch(`${config.API_URL}/stations/save`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ directory: selectedPath.split('/')[0] })
+                });
+                if (response.ok) {
+                    alert('Станции сохранены успешно');
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Ошибка при сохранении');
+                }
+            } catch (error) {
+                console.error('Error saving stations:', error);
+            }
+        }
+    });
+
+    input.click();
+}
+
+// Загрузка станций из CSV
+window.loadStations = async function() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+
+    input.addEventListener('change', async (e) => {
+        if (e.target.files.length > 0) {
+            const formData = new FormData();
+            formData.append('file', e.target.files[0]);
+
+            try {
+                const response = await fetch(`${config.API_URL}/stations/load`, {
+                    method: 'POST',
+                    body: formData
+                });
+                if (response.ok) {
+                    alert('Станции загружены успешно');
+                    // Загружаем обновленный список станций
+                    const stationsResponse = await fetch(`${config.API_URL}/stations`);
+                    const stationsData = await stationsResponse.json();
+                    updateStationsList(stationsData.stations);
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Ошибка при загрузке');
+                }
+            } catch (error) {
+                console.error('Error loading stations:', error);
+            }
+        }
+    });
+
+    input.click();
+}
+
 
 // Загрузка начальных данных
 async function loadInitialData() {
     try {
-        const response = await fetch(`${API_URL}/stations`);
+        const response = await fetch(`${config.API_URL}/stations`);
         const data = await response.json();
         console.log('Loaded data:', data); // Для отладки
 
@@ -88,10 +169,6 @@ function scrollToActiveStation(stationName) {
     });
 }
 
-
-
-
-
 // Воспроизведение станции
 async function playStation(station) {
     try {
@@ -116,7 +193,7 @@ async function playStation(station) {
         }
 
         // Сохраняем последнюю станцию на сервере
-        await fetch(`${API_URL}/last-station`, {
+        await fetch(`${config.API_URL}/last-station`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -134,25 +211,16 @@ async function deleteStation(name) {
     if (!confirm(`Удалить станцию ${name}?`)) return;
 
     try {
-        await fetch(`${API_URL}/stations/${name}`, {
+        await fetch(`${config.API_URL}/stations/${name}`, {
             method: 'DELETE'
         });
         // Загружаем обновленный список станций
-        const response = await fetch(`${API_URL}/stations`);
+        const response = await fetch(`${config.API_URL}/stations`);
         const data = await response.json();
         updateStationsList(data.stations);
     } catch (error) {
         console.error('Error deleting station:', error);
     }
-}
-
-// Управление модальным окном
-function openModal() {
-    document.getElementById('addStationModal').style.display = 'block';
-}
-
-function closeModal() {
-    document.getElementById('addStationModal').style.display = 'none';
 }
 
 // Обработка добавления новой станции
@@ -165,7 +233,7 @@ document.getElementById('addStationForm').addEventListener('submit', async (e) =
     };
 
     try {
-        await fetch(`${API_URL}/stations`, {
+        await fetch(`${config.API_URL}/stations`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -175,7 +243,7 @@ document.getElementById('addStationForm').addEventListener('submit', async (e) =
         closeModal();
         e.target.reset();
         // Загружаем обновленный список станций
-        const response = await fetch(`${API_URL}/stations`);
+        const response = await fetch(`${config.API_URL}/stations`);
         const data = await response.json();
         updateStationsList(data.stations);
     } catch (error) {
@@ -191,7 +259,7 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
     // Короткое нажатие - воспроизведение
     button.addEventListener('click', async () => {
         try {
-            const response = await fetch(`${API_URL}/favorites/${favoriteId}`, {
+            const response = await fetch(`${config.API_URL}/favorites/${favoriteId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -207,7 +275,7 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
                     // Запускаем воспроизведение
                     playStation(data.station);
                     // Обновляем список станций
-                    const stationsResponse = await fetch(`${API_URL}/stations`);
+                    const stationsResponse = await fetch(`${config.API_URL}/stations`);
                     const stationsData = await stationsResponse.json();
                     updateStationsList(stationsData.stations);
                 } else {
@@ -225,7 +293,7 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
     button.addEventListener('mousedown', () => {
         pressTimer = setTimeout(async () => {
             try {
-                const response = await fetch(`${API_URL}/favorites/${favoriteId}`, {
+                const response = await fetch(`${config.API_URL}/favorites/${favoriteId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -245,74 +313,6 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
 });
 
 
-
-// Сохранение станций в CSV
-async function saveStations() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.setAttribute('webkitdirectory', '');
-    input.setAttribute('directory', '');
-
-    input.addEventListener('change', async (e) => {
-        if (e.target.files.length > 0) {
-            const selectedPath = e.target.files[0].webkitRelativePath;
-            try {
-                const response = await fetch(`${API_URL}/stations/save`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ directory: selectedPath.split('/')[0] })
-                });
-                if (response.ok) {
-                    alert('Станции сохранены успешно');
-                } else {
-                    const data = await response.json();
-                    alert(data.error || 'Ошибка при сохранении');
-                }
-            } catch (error) {
-                console.error('Error saving stations:', error);
-            }
-        }
-    });
-
-    input.click();
-}
-
-// Загрузка станций из CSV
-async function loadStations() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.csv';
-
-    input.addEventListener('change', async (e) => {
-        if (e.target.files.length > 0) {
-            const formData = new FormData();
-            formData.append('file', e.target.files[0]);
-
-            try {
-                const response = await fetch(`${API_URL}/stations/load`, {
-                    method: 'POST',
-                    body: formData
-                });
-                if (response.ok) {
-                    alert('Станции загружены успешно');
-                    // Загружаем обновленный список станций
-                    const stationsResponse = await fetch(`${API_URL}/stations`);
-                    const stationsData = await stationsResponse.json();
-                    updateStationsList(stationsData.stations);
-                } else {
-                    const data = await response.json();
-                    alert(data.error || 'Ошибка при загрузке');
-                }
-            } catch (error) {
-                console.error('Error loading stations:', error);
-            }
-        }
-    });
-
-    input.click();
-}
 
 // Закрытие модального окна при клике вне его
 window.onclick = function(event) {
