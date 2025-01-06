@@ -134,3 +134,49 @@ body {
 .favorite-btn.active {
     background-color: #e0e0e0;
 }
+
+/* Стили для уведомлений */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background-color: white;
+    border: 3px solid black;
+    border-radius: 10px;
+    font-family: Arial, sans-serif;
+    font-size: 1em;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s;
+}
+
+/* Анимация появления и исчезновения */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* Разные типы уведомлений */
+.notification.success {
+    border-color: green;
+}
+
+.notification.error {
+    border-color: red;
+}

@@ -54,7 +54,7 @@ window.saveStations = async function() {
 
     } catch (error) {
         console.error('Error saving stations:', error);
-        alert('Ошибка при сохранении станций');
+        showNotification('Ошибка при сохранении станций', 'error');
     }
 }
 
@@ -75,14 +75,15 @@ window.loadStations = async function() {
                     body: formData
                 });
                 if (response.ok) {
-                    alert('Станции загружены успешно');
+                    showNotification('Станции загружены успешно', 'success');
                     // Загружаем обновленный список станций
                     const stationsResponse = await fetch(`${config.API_URL}/stations`);
                     const stationsData = await stationsResponse.json();
                     updateStationsList(stationsData.stations);
                 } else {
                     const data = await response.json();
-                    alert(data.error || 'Ошибка при загрузке');
+                    showNotification(data.error || 'Ошибка при загрузке', 'error');
+
                 }
             } catch (error) {
                 console.error('Error loading stations:', error);
@@ -263,13 +264,41 @@ document.getElementById('addStationForm').addEventListener('submit', async (e) =
     }
 });
 
+
 // Управление избранными станциями
 document.querySelectorAll('.favorite-btn').forEach((button) => {
     const favoriteId = button.getAttribute('data-id');
     let pressTimer;
+    let isLongPress = false;
+
+    // Функция для сохранения станции
+    const saveFavorite = async () => {
+        try {
+            const response = await fetch(`${config.API_URL}/favorites/${favoriteId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ save: true })
+            });
+            const data = await response.json();
+            showNotification(data.message || data.error || 'Станция сохранена');
+        } catch (error) {
+            console.error('Error saving favorite:', error);
+            showNotification('Ошибка при сохранении станции', 'error');
+        }
+    };
 
     // Короткое нажатие - воспроизведение
-    button.addEventListener('click', async () => {
+    button.addEventListener('click', async (e) => {
+        e.preventDefault();
+
+        // Если это было долгое нажатие, не запускаем воспроизведение
+        if (isLongPress) {
+            isLongPress = false;
+            return;
+        }
+
         try {
             const response = await fetch(`${config.API_URL}/favorites/${favoriteId}`, {
                 method: 'POST',
@@ -279,52 +308,72 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
                 body: JSON.stringify({ play: true })
             });
             const data = await response.json();
-            if (response.ok) {
-                // Проверяем, что данные о станции присутствуют в ответе
-                if (data.station) {
-                    // Обновляем текущую станцию
-                    currentStation = data.station;
-                    // Запускаем воспроизведение
-                    playStation(data.station);
-                    // Обновляем список станций
-                    const stationsResponse = await fetch(`${config.API_URL}/stations`);
-                    const stationsData = await stationsResponse.json();
-                    updateStationsList(stationsData.stations);
-                } else {
-                    console.error('Station data not found in response:', data);
-                }
+            if (response.ok && data.station) {
+                currentStation = data.station;
+                playStation(data.station);
+                const stationsResponse = await fetch(`${config.API_URL}/stations`);
+                const stationsData = await stationsResponse.json();
+                updateStationsList(stationsData.stations);
             } else {
-                alert(data.error || 'Ошибка воспроизведения');
+                showNotification(data.error || 'Ошибка воспроизведения', 'error');
             }
         } catch (error) {
             console.error('Error playing favorite:', error);
+            showNotification('Ошибка воспроизведения', 'error');
         }
     });
 
-    // Долгое нажатие - сохранение
-    button.addEventListener('mousedown', () => {
-        pressTimer = setTimeout(async () => {
-            try {
-                const response = await fetch(`${config.API_URL}/favorites/${favoriteId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ save: true })
-                });
-                const data = await response.json();
-                alert(data.message || data.error || 'Станция сохранена');
-            } catch (error) {
-                console.error('Error saving favorite:', error);
-            }
+    // Начало нажатия
+    button.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        isLongPress = false;
+        pressTimer = setTimeout(() => {
+            isLongPress = true;
+            // Запускаем сохранение в отдельном микротаске
+            Promise.resolve().then(saveFavorite);
         }, 1000);
     });
 
-    button.addEventListener('mouseup', () => clearTimeout(pressTimer));
-    button.addEventListener('mouseleave', () => clearTimeout(pressTimer));
+    // Отпускание кнопки
+    button.addEventListener('mouseup', (e) => {
+        e.preventDefault();
+        clearTimeout(pressTimer);
+    });
+
+    // Уход мыши с кнопки
+    button.addEventListener('mouseleave', (e) => {
+        e.preventDefault();
+        clearTimeout(pressTimer);
+    });
+
+    // Добавляем обработчики для тач-устройств
+    button.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isLongPress = false;
+        pressTimer = setTimeout(() => {
+            isLongPress = true;
+            Promise.resolve().then(saveFavorite);
+        }, 1000);
+    });
+
+    button.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        clearTimeout(pressTimer);
+    });
 });
+// Опциональная функция для создания красивого уведомления
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
 
+    document.body.appendChild(notification);
 
+    // Удаляем уведомление через 3 секунды
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
 
 // Закрытие модального окна при клике вне его
 window.onclick = function(event) {
