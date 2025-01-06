@@ -270,6 +270,7 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
     const favoriteId = button.getAttribute('data-id');
     let pressTimer;
     let isLongPress = false;
+    let touchStartTime = 0;
 
     // Функция для сохранения станции
     const saveFavorite = async () => {
@@ -289,16 +290,8 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
         }
     };
 
-    // Короткое нажатие - воспроизведение
-    button.addEventListener('click', async (e) => {
-        e.preventDefault();
-
-        // Если это было долгое нажатие, не запускаем воспроизведение
-        if (isLongPress) {
-            isLongPress = false;
-            return;
-        }
-
+    // Функция для воспроизведения станции
+    const playFavorite = async () => {
         try {
             const response = await fetch(`${config.API_URL}/favorites/${favoriteId}`, {
                 method: 'POST',
@@ -321,35 +314,40 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
             console.error('Error playing favorite:', error);
             showNotification('Ошибка воспроизведения', 'error');
         }
+    };
+
+    // Обработчики для десктопа
+    button.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!isLongPress) {
+            playFavorite();
+        }
     });
 
-    // Начало нажатия
     button.addEventListener('mousedown', (e) => {
         e.preventDefault();
         isLongPress = false;
         pressTimer = setTimeout(() => {
             isLongPress = true;
-            // Запускаем сохранение в отдельном микротаске
             Promise.resolve().then(saveFavorite);
         }, 1000);
     });
 
-    // Отпускание кнопки
     button.addEventListener('mouseup', (e) => {
         e.preventDefault();
         clearTimeout(pressTimer);
     });
 
-    // Уход мыши с кнопки
     button.addEventListener('mouseleave', (e) => {
         e.preventDefault();
         clearTimeout(pressTimer);
     });
 
-    // Добавляем обработчики для тач-устройств
+    // Обработчики для мобильных устройств
     button.addEventListener('touchstart', (e) => {
         e.preventDefault();
         isLongPress = false;
+        touchStartTime = Date.now();
         pressTimer = setTimeout(() => {
             isLongPress = true;
             Promise.resolve().then(saveFavorite);
@@ -359,8 +357,26 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
     button.addEventListener('touchend', (e) => {
         e.preventDefault();
         clearTimeout(pressTimer);
+
+        // Проверяем, было ли это коротким нажатием
+        const touchDuration = Date.now() - touchStartTime;
+        if (touchDuration < 1000 && !isLongPress) {
+            playFavorite();
+        }
     });
+
+    // Предотвращаем двойное срабатывание на устройствах с поддержкой и тача, и мыши
+    button.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+    }, { passive: false });
+
+    button.addEventListener('touchend', (e) => {
+        e.preventDefault();
+    }, { passive: false });
 });
+
+
+
 // Опциональная функция для создания красивого уведомления
 function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
