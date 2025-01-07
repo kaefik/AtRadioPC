@@ -5,6 +5,7 @@ class Config:
     # Базовые настройки
     JSON_AS_ASCII = False
     CORS_ORIGINS = ["http://localhost:5000", "http://127.0.0.1:5000"]
+    CORS_SUPPORTS_CREDENTIALS = True
 
     # Пути к файлам конфигурации
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
