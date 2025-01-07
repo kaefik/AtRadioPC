@@ -32,6 +32,8 @@ async function login(username, password) {
         if (response.ok) {
             isAuthenticated = true;
             showApp();
+            // Сбрасываем форму входа
+            document.getElementById('loginForm').reset();
         } else {
             const data = await response.json();
             showNotification(data.error || 'Ошибка входа', 'error');
@@ -57,6 +59,8 @@ async function register(username, email, password) {
         if (response.ok) {
             showNotification('Регистрация успешна, выполните вход');
             switchAuthTab('login');
+            // Сбрасываем форму регистрации
+            document.getElementById('registerForm').reset();
         } else {
             showNotification(data.error || 'Ошибка регистрации', 'error');
         }
