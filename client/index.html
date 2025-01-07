@@ -10,7 +10,37 @@
     </script>
 </head>
 <body>
-    <div class="container">
+    <!-- Контейнер для страницы входа -->
+    <div id="authContainer" class="container">
+        <div class="auth-tabs">
+            <button class="auth-tab active" data-tab="login">Вход</button>
+            <button class="auth-tab" data-tab="register">Регистрация</button>
+        </div>
+
+        <!-- Форма входа -->
+        <form id="loginForm" class="auth-form">
+            <input type="text" name="username" placeholder="Имя пользователя" required>
+            <input type="password" name="password" placeholder="Пароль" required>
+            <button type="submit">Войти</button>
+        </form>
+
+        <!-- Форма регистрации -->
+        <form id="registerForm" class="auth-form" style="display: none;">
+            <input type="text" name="username" placeholder="Имя пользователя" required>
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="password" name="password" placeholder="Пароль" required>
+            <input type="password" name="password_confirm" placeholder="Подтвердите пароль" required>
+            <button type="submit">Зарегистрироваться</button>
+        </form>
+    </div>
+
+    <!-- Основной контейнер приложения -->
+    <div id="appContainer" class="container" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>Радио</h1>
+            <button id="logoutBtn" class="logout-btn">Выйти</button>
+        </div>
+
         <div class="header" id="currentStation"></div>
         <div class="player">
             <audio controls id="audioPlayer">
