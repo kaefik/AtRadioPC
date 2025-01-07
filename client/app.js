@@ -1,6 +1,132 @@
 import config from './config.js';
 
 let currentStation = null;
+let isAuthenticated = false;
+
+
+// Функции аутентификации
+async function checkAuth() {
+    try {
+        const response = await fetch(`${config.API_URL}/auth/check`, {
+            credentials: 'include'  // Важно для работы с сессиями
+        });
+        isAuthenticated = response.ok;
+        return isAuthenticated;
+    } catch (error) {
+        console.error('Auth check error:', error);
+        return false;
+    }
+}
+
+async function login(username, password) {
+    try {
+        const response = await fetch(`${config.API_URL}/auth/login`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (response.ok) {
+            isAuthenticated = true;
+            showApp();
+        } else {
+            const data = await response.json();
+            showNotification(data.error || 'Ошибка входа', 'error');
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        showNotification('Ошибка входа', 'error');
+    }
+}
+
+async function register(username, email, password) {
+    try {
+        const response = await fetch(`${config.API_URL}/auth/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('Регистрация успешна, выполните вход');
+            switchAuthTab('login');
+        } else {
+            showNotification(data.error || 'Ошибка регистрации', 'error');
+        }
+    } catch (error) {
+        console.error('Register error:', error);
+        showNotification('Ошибка регистрации', 'error');
+    }
+}
+
+async function logout() {
+    try {
+        await fetch(`${config.API_URL}/auth/logout`, {
+            method: 'GET',
+            credentials: 'include'
+        });
+        isAuthenticated = false;
+        showAuth();
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
+}
+
+// Функции UI
+function showAuth() {
+    document.getElementById('authContainer').style.display = 'block';
+    document.getElementById('appContainer').style.display = 'none';
+}
+
+function showApp() {
+    document.getElementById('authContainer').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'block';
+    loadInitialData();
+}
+
+function switchAuthTab(tab) {
+    // Обновляем активную вкладку
+    document.querySelectorAll('.auth-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === tab);
+    });
+
+    // Показываем нужную форму
+    document.getElementById('loginForm').style.display = tab === 'login' ? 'flex' : 'none';
+    document.getElementById('registerForm').style.display = tab === 'register' ? 'flex' : 'none';
+}
+
+// Обновляем все fetch запросы для работы с credentials
+async function fetchWithAuth(url, options = {}) {
+    const defaultOptions = {
+        credentials: 'include',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    };
+
+    const response = await fetch(url, defaultOptions);
+
+    if (response.status === 401) {
+        isAuthenticated = false;
+        showAuth();
+        throw new Error('Unauthorized');
+    }
+
+    return response;
+}
+
+
+
+
 
 // Move these functions to the global scope
 
@@ -17,7 +143,7 @@ window.closeModal = function()  {
 window.saveStations = async function() {
     try {
         // Fetch current stations from the API
-        const response = await fetch(`${config.API_URL}/stations`);
+        const response = await fetchWithAuth(`${config.API_URL}/stations`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -70,14 +196,14 @@ window.loadStations = async function() {
             formData.append('file', e.target.files[0]);
 
             try {
-                const response = await fetch(`${config.API_URL}/stations/load`, {
+                const response = await fetchWithAuth(`${config.API_URL}/stations/load`, {
                     method: 'POST',
                     body: formData
                 });
                 if (response.ok) {
                     showNotification('Станции загружены успешно', 'success');
                     // Загружаем обновленный список станций
-                    const stationsResponse = await fetch(`${config.API_URL}/stations`);
+                    const stationsResponse = await fetchWithAuth(`${config.API_URL}/stations`);
                     const stationsData = await stationsResponse.json();
                     updateStationsList(stationsData.stations);
                 } else {
@@ -98,11 +224,9 @@ window.loadStations = async function() {
 // Загрузка начальных данных
 async function loadInitialData() {
     try {
-        const response = await fetch(`${config.API_URL}/stations`);
+        const response = await fetchWithAuth(`${config.API_URL}/stations`);
         const data = await response.json();
-        console.log('Loaded data:', data); // Для отладки
 
-        // Обновляем currentStation перед обновлением списка станций
         if (data.last_station) {
             currentStation = data.last_station;
         }
@@ -112,7 +236,6 @@ async function loadInitialData() {
         if (data.last_station) {
             playStation(data.last_station);
             markLastStationActive(data.last_station.name);
-            scrollToActiveStation(data.last_station.name);
         }
     } catch (error) {
         console.error('Error loading initial data:', error);
@@ -206,7 +329,7 @@ async function playStation(station) {
         }
 
         // Сохраняем последнюю станцию на сервере
-        await fetch(`${config.API_URL}/last-station`, {
+        await fetchWithAuth(`${config.API_URL}/last-station`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -224,11 +347,11 @@ async function deleteStation(name) {
     if (!confirm(`Удалить станцию ${name}?`)) return;
 
     try {
-        await fetch(`${config.API_URL}/stations/${name}`, {
+        await fetchWithAuth(`${config.API_URL}/stations/${name}`, {
             method: 'DELETE'
         });
         // Загружаем обновленный список станций
-        const response = await fetch(`${config.API_URL}/stations`);
+        const response = await fetchWithAuth(`${config.API_URL}/stations`);
         const data = await response.json();
         updateStationsList(data.stations);
     } catch (error) {
@@ -246,7 +369,7 @@ document.getElementById('addStationForm').addEventListener('submit', async (e) =
     };
 
     try {
-        await fetch(`${config.API_URL}/stations`, {
+        await fetchWithAuth(`${config.API_URL}/stations`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -256,7 +379,7 @@ document.getElementById('addStationForm').addEventListener('submit', async (e) =
         closeModal();
         e.target.reset();
         // Загружаем обновленный список станций
-        const response = await fetch(`${config.API_URL}/stations`);
+        const response = await fetchWithAuth(`${config.API_URL}/stations`);
         const data = await response.json();
         updateStationsList(data.stations);
     } catch (error) {
@@ -275,7 +398,7 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
     // Функция для сохранения станции
     const saveFavorite = async () => {
         try {
-            const response = await fetch(`${config.API_URL}/favorites/${favoriteId}`, {
+            const response = await fetchWithAuth(`${config.API_URL}/favorites/${favoriteId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -293,7 +416,7 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
     // Функция для воспроизведения станции
     const playFavorite = async () => {
         try {
-            const response = await fetch(`${config.API_URL}/favorites/${favoriteId}`, {
+            const response = await fetchWithAuth(`${config.API_URL}/favorites/${favoriteId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -304,7 +427,7 @@ document.querySelectorAll('.favorite-btn').forEach((button) => {
             if (response.ok && data.station) {
                 currentStation = data.station;
                 playStation(data.station);
-                const stationsResponse = await fetch(`${config.API_URL}/stations`);
+                const stationsResponse = await fetchWithAuth(`${config.API_URL}/stations`);
                 const stationsData = await stationsResponse.json();
                 updateStationsList(stationsData.stations);
             } else {
@@ -400,4 +523,41 @@ window.onclick = function(event) {
 };
 
 // Загружаем данные при запуске
-document.addEventListener('DOMContentLoaded', loadInitialData);
+// Инициализация приложения
+document.addEventListener('DOMContentLoaded', async () => {
+    // Настраиваем обработчики форм аутентификации
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        await login(formData.get('username'), formData.get('password'));
+    });
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        if (formData.get('password') !== formData.get('password_confirm')) {
+            showNotification('Пароли не совпадают', 'error');
+            return;
+        }
+        await register(
+            formData.get('username'),
+            formData.get('email'),
+            formData.get('password')
+        );
+    });
+
+    // Настраиваем переключение вкладок
+    document.querySelectorAll('.auth-tab').forEach(tab => {
+        tab.addEventListener('click', () => switchAuthTab(tab.dataset.tab));
+    });
+
+    // Настраиваем кнопку выхода
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+
+    // Проверяем аутентификацию и показываем нужный экран
+    if (await checkAuth()) {
+        showApp();
+    } else {
+        showAuth();
+    }
+});
