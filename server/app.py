@@ -1,10 +1,11 @@
 from flask import Flask, request, jsonify
-import json
-import os
 from flask_cors import CORS
+from flask_login import LoginManager, login_required, current_user
+import os
 from config import config
-import sys
+from models import db, User, UserStation, Favorite
 
+login_manager = LoginManager()
 
 
 def create_app(config_name="default"):
@@ -13,129 +14,217 @@ def create_app(config_name="default"):
     # Загружаем конфигурацию
     app.config.from_object(config[config_name])
 
-    # Настраиваем CORS
+    # Добавляем настройки для базы данных и аутентификации
+    # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///radio.db'
+    # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    # app.config['SECRET_KEY'] = 'your-secret-key-change-this'  # Измените на реальный секретный ключ
+
+    # Инициализация расширений
+    db.init_app(app)
+    login_manager.init_app(app)
     CORS(app, resources={r"/api/*": {"origins": app.config['CORS_ORIGINS']}})
 
-    # Создаем директорию для конфигурационных файлов если её нет
-    os.makedirs(app.config['CONFIG_DIR'], exist_ok=True)
+    # Создаем все таблицы при первом запуске
+    with app.app_context():
+        db.create_all()
 
-    def load_favorites():
-        if os.path.exists(app.config['FAVORITES_FILE']):
-            with open(app.config['FAVORITES_FILE'], "r") as file:
-                return json.load(file)
-        return {"favorite1": None, "favorite2": None, "favorite3": None}
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
 
-    def save_favorites(favorites):
-        with open(app.config['FAVORITES_FILE'], "w") as file:
-            json.dump(favorites, file, ensure_ascii=False, indent=2)
+    # Регистрация и авторизация
+    @app.route("/api/auth/register", methods=["POST"])
+    def register():
+        data = request.json
 
+        if User.query.filter_by(username=data['username']).first():
+            return jsonify({'error': 'Username already exists'}), 400
 
-    def load_radio_stations():
-        if not os.path.exists(app.config['RADIO_STATIONS_FILE']):
-            os.makedirs(os.path.dirname(app.config['RADIO_STATIONS_FILE']), exist_ok=True)
-            # Создаем файл с тестовыми данными
-            initial_stations = [
-                {"name": "TatRadioTsentr", "url": "https://listen4.myradio24.com/trc"},
-                {"name": "Yuldash (bashkirskoe radio)", "url": "https://radio.mediacdn.ru/uldash.mp3"}
-            ]
-            with open(app.config['RADIO_STATIONS_FILE'], "w") as file:
-                json.dump(initial_stations, file, ensure_ascii=False, indent=2)
-            return initial_stations
+        if User.query.filter_by(email=data['email']).first():
+            return jsonify({'error': 'Email already exists'}), 400
 
-        with open(app.config['RADIO_STATIONS_FILE'], "r") as file:
-            return json.load(file)
+        user = User(
+            username=data['username'],
+            email=data['email'],
+            auth_type='local'
+        )
+        user.set_password(data['password'])
 
+        db.session.add(user)
+        db.session.commit()
 
-    def save_radio_stations(stations):
-        with open(app.config['RADIO_STATIONS_FILE'], "w") as file:
-            json.dump(stations, file, ensure_ascii=False, indent=2)
+        return jsonify({'message': 'User registered successfully'})
 
+    @app.route("/api/auth/login", methods=["POST"])
+    def login():
+        data = request.json
+        user = User.query.filter_by(username=data['username']).first()
 
-    def save_last_station(station):
-        with open(app.config['LAST_STATION_FILE'], "w") as file:
-            json.dump(station, file)
+        if user and user.check_password(data['password']):
+            login_user(user)
+            return jsonify({'message': 'Logged in successfully'})
 
+        return jsonify({'error': 'Invalid username or password'}), 401
 
-    def get_last_station():
-        if os.path.exists(app.config['LAST_STATION_FILE']):
-            with open(app.config['LAST_STATION_FILE'], "r") as file:
-                try:
-                    return json.load(file)
-                except json.JSONDecodeError:
-                    return None
-        return None
+    @app.route("/api/auth/logout")
+    @login_required
+    def logout():
+        logout_user()
+        return jsonify({'message': 'Logged out successfully'})
 
-
+    # Работа со станциями
     @app.route("/api/stations", methods=["GET"])
+    @login_required
     def get_stations():
+        stations = UserStation.query.filter_by(user_id=current_user.id).all()
+        stations_data = [{"name": s.name, "url": s.url} for s in stations]
+
+        last_station = None
+        if current_user.last_station_id:
+            station = UserStation.query.get(current_user.last_station_id)
+            if station:
+                last_station = {"name": station.name, "url": station.url}
+
         return jsonify({
-            "stations": load_radio_stations(),
-            "last_station": get_last_station()
+            "stations": stations_data,
+            "last_station": last_station
         })
 
-
     @app.route("/api/stations", methods=["POST"])
+    @login_required
     def add_station():
         data = request.json
-        stations = load_radio_stations()
-        stations.append({"name": data["name"], "url": data["url"]})
-        save_radio_stations(stations)
-        return jsonify({"success": True})
 
+        existing = UserStation.query.filter_by(
+            user_id=current_user.id,
+            name=data["name"]
+        ).first()
+
+        if existing:
+            return jsonify({"error": "Станция с таким названием уже существует"}), 400
+
+        station = UserStation(
+            user_id=current_user.id,
+            name=data["name"],
+            url=data["url"]
+        )
+
+        db.session.add(station)
+        db.session.commit()
+
+        return jsonify({"success": True})
 
     @app.route("/api/stations/<name>", methods=["DELETE"])
+    @login_required
     def delete_station(name):
-        stations = load_radio_stations()
-        stations = [s for s in stations if s["name"].strip() != name.strip()]
+        station = UserStation.query.filter_by(
+            user_id=current_user.id,
+            name=name.strip()
+        ).first()
 
-        save_radio_stations(stations)
+        if not station:
+            return jsonify({"error": "Станция не найдена"}), 404
 
-        last_station = get_last_station()
-        if last_station and last_station["name"] == name:
-            if os.path.exists(app.config['LAST_STATION_FILE']):
-                os.remove(app.config['LAST_STATION_FILE'])
+        # Удаляем связанные избранные
+        Favorite.query.filter_by(station_id=station.id).delete()
+
+        # Очищаем last_station_id если это была последняя станция
+        if current_user.last_station_id == station.id:
+            current_user.last_station_id = None
+
+        db.session.delete(station)
+        db.session.commit()
 
         return jsonify({"success": True})
-
-
 
     @app.route("/api/last-station", methods=["POST"])
+    @login_required
     def update_last_station():
         data = request.json
-        save_last_station({"name": data["name"], "url": data["url"]})
+        station = UserStation.query.filter_by(
+            user_id=current_user.id,
+            name=data["name"]
+        ).first()
+
+        if not station:
+            return jsonify({"error": "Станция не найдена"}), 404
+
+        current_user.last_station_id = station.id
+        db.session.commit()
+
         return jsonify({"success": True})
 
-
+    # Работа с избранным
     @app.route("/api/favorites/<favorite_id>", methods=["GET", "POST"])
+    @login_required
     def manage_favorite(favorite_id):
-        favorites = load_favorites()
-
         if request.method == "GET":
-            return jsonify(favorites.get(f"favorite{favorite_id}"))
+            favorite = Favorite.query.filter_by(
+                user_id=current_user.id,
+                position=int(favorite_id)
+            ).first()
+
+            if favorite:
+                station = UserStation.query.get(favorite.station_id)
+                return jsonify({
+                    "name": station.name,
+                    "url": station.url
+                })
+            return jsonify(None)
 
         data = request.json
+        position = int(favorite_id)
+
         if data.get("save"):
-            last_station = get_last_station()
-            if last_station:
-                favorites[f"favorite{favorite_id}"] = last_station
-                save_favorites(favorites)
-                return jsonify({"message": "Станция сохранена как избранная"})
-            return jsonify({"error": "Нет текущей станции для сохранения"}), 400
+            if not current_user.last_station_id:
+                return jsonify({"error": "Нет текущей станции для сохранения"}), 400
+
+            # Удаляем существующую избранную станцию если есть
+            Favorite.query.filter_by(
+                user_id=current_user.id,
+                position=position
+            ).delete()
+
+            # Сохраняем новую
+            favorite = Favorite(
+                user_id=current_user.id,
+                station_id=current_user.last_station_id,
+                position=position
+            )
+            db.session.add(favorite)
+            db.session.commit()
+
+            return jsonify({"message": "Станция сохранена как избранная"})
 
         elif data.get("play"):
-            favorite = favorites.get(f"favorite{favorite_id}")
-            if favorite:
-                save_last_station(favorite)
-                return jsonify({"message": "Станция воспроизводится", "station": favorite})
-            return jsonify({"error": "На эту кнопку нет сохраненной станции"}), 400
+            favorite = Favorite.query.filter_by(
+                user_id=current_user.id,
+                position=position
+            ).first()
+
+            if not favorite:
+                return jsonify({"error": "На эту кнопку нет сохраненной станции"}), 400
+
+            station = UserStation.query.get(favorite.station_id)
+            current_user.last_station_id = station.id
+            db.session.commit()
+
+            return jsonify({
+                "message": "Станция воспроизводится",
+                "station": {
+                    "name": station.name,
+                    "url": station.url
+                }
+            })
 
         return jsonify({"error": "Неверный запрос"}), 400
 
-
+    # Импорт/экспорт станций
     @app.route("/api/stations/save", methods=["POST"])
+    @login_required
     def save_stations_to_csv():
         try:
-            stations = load_radio_stations()
+            stations = UserStation.query.filter_by(user_id=current_user.id).all()
             directory = request.json.get('directory', '')
 
             filename = os.path.join(os.path.expanduser('~'), directory, 'stations.csv')
@@ -144,14 +233,14 @@ def create_app(config_name="default"):
             with open(filename, 'w', encoding='utf-8') as f:
                 f.write('Name;URL\n')
                 for station in stations:
-                    f.write(f"{station['name']};{station['url']}\n")
+                    f.write(f"{station.name};{station.url}\n")
 
             return jsonify({"success": True})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
-
     @app.route("/api/stations/load", methods=["POST"])
+    @login_required
     def load_stations_from_csv():
         try:
             if 'file' not in request.files:
@@ -167,15 +256,22 @@ def create_app(config_name="default"):
             if not lines[0].strip() == 'Name;URL':
                 return jsonify({"error": "Неверный формат заголовка CSV"}), 400
 
-            current_stations = load_radio_stations()
-            current_names = {station['name'] for station in current_stations}
+            existing_names = {
+                station.name for station in
+                UserStation.query.filter_by(user_id=current_user.id).all()
+            }
 
             for line in lines[1:]:
                 name, url = line.strip().split(';')
-                if name not in current_names:
-                    current_stations.append({"name": name.strip(), "url": url})
+                if name not in existing_names:
+                    station = UserStation(
+                        user_id=current_user.id,
+                        name=name.strip(),
+                        url=url.strip()
+                    )
+                    db.session.add(station)
 
-            save_radio_stations(current_stations)
+            db.session.commit()
             return jsonify({"success": True})
 
         except Exception as e:
@@ -184,11 +280,11 @@ def create_app(config_name="default"):
     return app
 
 
-
 if __name__ == "__main__":
     env = os.getenv("FLASK_ENV", "development")
     app = create_app(env)
-    app.run(host=app.config['HOST'],
-            port=app.config['PORT'],
-            debug=app.config['DEBUG'])
-
+    app.run(
+        host=app.config['HOST'],
+        port=app.config['PORT'],
+        debug=app.config['DEBUG']
+    )
