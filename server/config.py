@@ -8,11 +8,18 @@ class Config:
 
     # Пути к файлам конфигурации
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-    CONFIG_DIR = os.path.join(BASE_DIR, "cfg")
+    # CONFIG_DIR = os.path.join(BASE_DIR, "cfg")
+    #
+    # RADIO_STATIONS_FILE = os.path.join(CONFIG_DIR, "radio_stations.json")
+    # LAST_STATION_FILE = os.path.join(CONFIG_DIR, "last_station.json")
+    # FAVORITES_FILE = os.path.join(CONFIG_DIR, "favorites.json")
 
-    RADIO_STATIONS_FILE = os.path.join(CONFIG_DIR, "radio_stations.json")
-    LAST_STATION_FILE = os.path.join(CONFIG_DIR, "last_station.json")
-    FAVORITES_FILE = os.path.join(CONFIG_DIR, "favorites.json")
+    # Хороший вариант - получение из переменной окружения
+    # app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY')
+
+    SECRET_KEY = 'b95c3a18edc5dabe9abd0493b4f99b558b0c5af7adffa82f8901265c5d60de64'  # Измените на реальный секретный ключ
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///radio.db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
 class DevelopmentConfig(Config):
