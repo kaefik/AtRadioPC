@@ -13,8 +13,13 @@ class User(UserMixin, db.Model):
     auth_type = db.Column(db.String(20), nullable=False)  # local, google, etc.
 
     # Связи с другими таблицами
+    stations = db.relationship(
+        'UserStation',
+        backref='user',
+        lazy=True,
+        foreign_keys='UserStation.user_id'  # Явно указываем, какой внешний ключ использовать
+    )
     favorites = db.relationship('Favorite', backref='user', lazy=True)
-    stations = db.relationship('UserStation', backref='user', lazy=True)
     last_station_id = db.Column(db.Integer, db.ForeignKey('user_station.id'), nullable=True)
 
     def set_password(self, password):
