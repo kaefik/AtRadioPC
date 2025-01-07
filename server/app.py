@@ -4,6 +4,7 @@ from flask_login import LoginManager, login_required, current_user, login_user, 
 import os
 from config import config
 from models import db, User, UserStation, Favorite
+import csv
 
 login_manager = LoginManager()
 
@@ -76,7 +77,39 @@ def create_app(config_name="default"):
     @app.route("/api/stations", methods=["GET"])
     @login_required
     def get_stations():
+        # Проверяем, есть ли у пользователя станции
         stations = UserStation.query.filter_by(user_id=current_user.id).all()
+
+        # Если станций нет, загружаем их из CSV-файла
+        if not stations:
+            csv_file_path = os.path.join('cfg/default_stations.csv')
+
+            try:
+                with open(csv_file_path, mode='r', encoding='utf-8') as file:
+                    csv_reader = csv.DictReader(file, delimiter=';')
+                    for row in csv_reader:
+                        # Проверяем, существует ли станция с таким именем у пользователя
+                        existing_station = UserStation.query.filter_by(
+                            user_id=current_user.id,
+                            name=row['Name']
+                        ).first()
+
+                        if not existing_station:
+                            # Создаем новую станцию
+                            station = UserStation(
+                                user_id=current_user.id,
+                                name=row['Name'],
+                                url=row['URL']
+                            )
+                            db.session.add(station)
+
+                db.session.commit()
+                # После загрузки станций, снова получаем их список
+                stations = UserStation.query.filter_by(user_id=current_user.id).all()
+            except Exception as e:
+                return jsonify({"error": f"Ошибка при загрузке станций из CSV: {str(e)}"}), 500
+
+        # Формируем данные для ответа
         stations_data = [{"name": s.name, "url": s.url} for s in stations]
 
         last_station = None
